@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Musk Promise Tracker</title>
+<title>Promise Tracker</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -389,6 +389,51 @@ body {
   font-size: 0.9rem;
 }
 
+/* ── TAB SWITCHER ────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+/* filters sit below the tab-bar (~48px tall) */
+.filters { top: 48px; }
+.tab-btn {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.tab-btn:hover { color: var(--text-muted); }
+.tab-btn.active { color: #fff; border-bottom-color: #fff; }
+.tab-btn.tab-musk.active  { border-bottom-color: var(--failed); color: var(--failed); }
+.tab-btn.tab-trump.active { border-bottom-color: #f59e0b; color: #f59e0b; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* Trump conflict category pill colors */
+.pill[data-cat=ukraine].active  { background:#1e3a5f66; border-color:#3b82f6; color:#93c5fd; }
+.pill[data-cat=gaza].active     { background:#36531466; border-color:#84cc16; color:#bef264; }
+.pill[data-cat=iran].active     { background:#450a0a66; border-color:#ef4444; color:#fca5a5; }
+
+.badge.cat-ukraine { background:#1e3a5f55; color:#93c5fd; }
+.badge.cat-gaza    { background:#36531455; color:#bef264; }
+.badge.cat-iran    { background:#450a0a55; color:#fca5a5; }
+
 /* ── FOOTER ──────────────────────────────────────────────────────────────── */
 footer {
   text-align: center;
@@ -414,6 +459,19 @@ footer a:hover { color: var(--text-muted); }
 </style>
 </head>
 <body>
+
+<!-- ── TAB BAR ─────────────────────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button class="tab-btn tab-musk active" data-page="musk">
+    <span>Musk Promises</span>
+  </button>
+  <button class="tab-btn tab-trump" data-page="trump">
+    <span>Trump &amp; Wars</span>
+  </button>
+</div>
+
+<!-- ══ MUSK PAGE ══════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-musk">
 
 <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
 <header class="header">
@@ -472,6 +530,59 @@ footer a:hover { color: var(--text-muted); }
   Sources include Wikipedia, Electrek, Quartz, US News, Fast Company, Al Jazeera, CNN, PBS Frontline, and others.<br>
   This tracker presents factual records with citations. Last updated June 2026.
 </footer>
+
+</div><!-- end #page-musk -->
+
+<!-- ══ TRUMP PAGE ══════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-trump">
+
+<header class="header">
+  <h1>Trump <span style="color:#f59e0b">Wars</span> Tracker</h1>
+  <p class="subtitle">
+    Every time Donald Trump declared a war was ending, almost over, or a deal was imminent —
+    and what actually happened.
+  </p>
+  <p class="meta">
+    2024 – 2026 &nbsp;·&nbsp; <span id="trump-total-count">0</span> entries &nbsp;·&nbsp;
+    Ukraine · Gaza · Iran
+  </p>
+</header>
+
+<section class="stats" id="trump-stats-bar"></section>
+
+<nav class="filters" aria-label="Trump filters">
+  <div class="filter-row">
+    <span class="filter-label">Conflict</span>
+    <button class="pill active" data-tcat="all">All</button>
+    <button class="pill" data-tcat="ukraine">🇺🇦 Ukraine</button>
+    <button class="pill" data-tcat="gaza">🇵🇸 Gaza</button>
+    <button class="pill" data-tcat="iran">🇮🇷 Iran</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Status</span>
+    <button class="pill active" data-tstatus="all">All</button>
+    <button class="pill" data-tstatus="failed"><span class="dot"></span>Failed</button>
+    <button class="pill" data-tstatus="delayed"><span class="dot"></span>Delayed</button>
+    <button class="pill" data-tstatus="partial"><span class="dot"></span>Partially Delivered</button>
+    <button class="pill" data-tstatus="delivered"><span class="dot"></span>Delivered</button>
+    <button class="pill" data-tstatus="ongoing"><span class="dot"></span>Ongoing</button>
+  </div>
+</nav>
+
+<main class="timeline-wrap">
+  <p class="result-count" id="trump-result-count"></p>
+  <div id="trump-timeline-items"></div>
+  <div id="trump-no-results" class="no-results" style="display:none">
+    No entries match this filter combination.
+  </div>
+</main>
+
+<footer>
+  Sources include CNN, PolitiFact, NBC News, CNBC, Al Jazeera, PBS, Britannica, Times of Israel, and others.<br>
+  This tracker presents factual records with citations. Last updated June 2026.
+</footer>
+
+</div><!-- end #page-trump -->
 
 <script>
 // ─── DATA ──────────────────────────────────────────────────────────────────
@@ -1074,9 +1185,330 @@ document.querySelectorAll("[data-status]").forEach(btn => {
   });
 });
 
-// ─── Init ──────────────────────────────────────────────────────────────────
+// ─── Init (Musk) ───────────────────────────────────────────────────────────
 renderStats();
 renderTimeline();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TRUMP WARS DATA & LOGIC
+// ══════════════════════════════════════════════════════════════════════════════
+
+const TRUMP_ENTRIES = [
+
+  // ══ UKRAINE ══════════════════════════════════════════════════════════════
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2024-06",
+    promise: "I will end the Ukraine war within 24 hours of taking office. I'll have it settled before January 20th.",
+    outcome: "CNN documented 53 separate instances of this claim during the 2024 campaign. Trump took office on January 20, 2025. The war was still raging. Trump later admitted it was 'sarcasm' and an 'exaggeration made in jest.'",
+    resolvedDate: "2025-01-20",
+    status: "failed",
+    source: { label: "CNN Fact Check", url: "https://www.cnn.com/2025/04/25/politics/fact-check-trump-ukraine-war" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2025-01-20",
+    promise: "Inauguration Day: war ends on day one. Trump takes office with his Ukraine promise still front and center.",
+    outcome: "The war continued without pause. No ceasefire talks were announced on inauguration day. Russian and Ukrainian forces were still actively exchanging fire.",
+    resolvedDate: "2025-01-20",
+    status: "failed",
+    source: { label: "NBC News", url: "https://www.nbcnews.com/politics/politics-news/trump-vowed-end-ukraine-war-24-hours-conflict-still-rages-rcna203085" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2025-04",
+    promise: "Trump says the 24-hour Ukraine claim was 'sarcasm' and he was 'being a little bit sarcastic.' He now says he never literally meant 24 hours.",
+    outcome: "Walked back. Trump had made the specific 24-hour claim at least 53 times in unambiguous terms without any indication of sarcasm at the time.",
+    resolvedDate: "2025-04",
+    status: "failed",
+    source: { label: "Yahoo News", url: "https://www.yahoo.com/news/trump-says-being-little-bit-233827556.html" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2025-04",
+    promise: "Hopefully Russia and Ukraine will make a deal this week.",
+    outcome: "No deal was reached that week. Negotiations between Kyiv and Moscow remained deadlocked over NATO membership and territorial lines.",
+    resolvedDate: "2025-04",
+    status: "failed",
+    source: { label: "NewsOnAir", url: "https://www.newsonair.gov.in/hopefully-russia-ukraine-will-make-deal-this-week-us-president-trump" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2025-10",
+    promise: "After the Gaza ceasefire, Trump says he wants to 'get Russia done' and will focus his peacemaking on Ukraine next.",
+    outcome: "No ceasefire or peace framework was reached in the following months. The conflict passed its 1,000-day mark. US envoys held talks in Paris, Riyadh, and Washington without a breakthrough.",
+    resolvedDate: null,
+    status: "delayed",
+    source: { label: "PBS NewsHour", url: "https://www.pbs.org/newshour/world/as-trump-pushes-an-end-to-the-russia-ukraine-war-he-looks-to-his-gaza-ceasefire-playbook" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2025-12",
+    promise: "After talks with Trump, Zelensky announced that 90% of a peace deal had been agreed.",
+    outcome: "No deal was signed. Russia objected to core terms including any security guarantees for Ukraine or retention of liberated territory. The remaining 10% proved unbridgeable.",
+    resolvedDate: "2026-02",
+    status: "failed",
+    source: { label: "The Hill", url: "https://thehill.com/policy/international/5727697-zelensky-trump-us-ukraine-russia-peace-deal-deadline/" }
+  },
+  {
+    cat: "ukraine", catLabel: "Ukraine",
+    date: "2026-02",
+    promise: "Trump sets a June 2026 deadline for a Russia-Ukraine peace deal, reportedly tied to US midterm election timing.",
+    outcome: "The June 2026 deadline passed without a signed peace agreement. Trump told Putin at the G7 in June 2026 that he was 'ready to help end the conflict.' Negotiations continue.",
+    resolvedDate: "2026-06",
+    status: "failed",
+    source: { label: "Axios", url: "https://www.axios.com/2026/02/07/zelensky-trump-russia-ukraine-peace-deal" }
+  },
+
+  // ══ GAZA ═════════════════════════════════════════════════════════════════
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2024-11",
+    promise: "I will end the Gaza war before I take office on January 20th.",
+    outcome: "A ceasefire framework (Phase 1) was agreed on January 17, 2025 — three days before inauguration — and took effect January 19. Trump claimed credit. Outcome: partially delivered, though negotiations had been ongoing for months before his involvement.",
+    resolvedDate: "2025-01-17",
+    status: "partial",
+    source: { label: "PBS NewsHour", url: "https://www.pbs.org/newshour/world/as-trump-pushes-an-end-to-the-russia-ukraine-war-he-looks-to-his-gaza-ceasefire-playbook" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-01-19",
+    promise: "Gaza ceasefire Phase 1 takes effect. Trump said this marks the beginning of 'lasting peace.'",
+    outcome: "Phase 1 was delivered: fighting paused, some hostages were released in exchange for Palestinian prisoners. However, Phase 2 — a permanent end to the war — was never agreed.",
+    resolvedDate: "2025-01-19",
+    status: "delivered",
+    source: { label: "Al Jazeera", url: "https://www.aljazeera.com/news/2025/10/9/trump-announces-gaza-ceasefire-deal-what-we-know-and-whats-next" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-05-30",
+    promise: "A Gaza Phase 2 agreement is 'very close.' A permanent end to the war is imminent.",
+    outcome: "No Phase 2 deal was reached in the following weeks. Fighting resumed in some areas. Negotiations dragged on through the summer of 2025.",
+    resolvedDate: "2025-06",
+    status: "failed",
+    source: { label: "GlobalSecurity", url: "https://www.globalsecurity.org/military/library/news/2025/05/mil-250531-presstv01.htm" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-08-25",
+    promise: "The Gaza war will reach a 'conclusive ending' in the next two to three weeks.",
+    outcome: "No conclusive ending occurred in two to three weeks. A new ceasefire framework emerged weeks later following further US-brokered negotiations in Cairo and Doha.",
+    resolvedDate: "2025-09",
+    status: "failed",
+    source: { label: "Times of Israel", url: "https://www.timesofisrael.com/trump-claims-gaza-war-to-reach-conclusive-ending-in-two-to-three-weeks/" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-10-08",
+    promise: "A deal to end the Gaza war is 'very close.' Trump says he may travel to Egypt that weekend.",
+    outcome: "A ceasefire agreement was signed the next day, October 9, 2025. Trump claimed this as a major diplomatic victory. Fighting paused and a hostage exchange began.",
+    resolvedDate: "2025-10-09",
+    status: "delivered",
+    source: { label: "CNBC", url: "https://www.cnbc.com/amp/2025/10/08/trump-says-deal-to-end-gaza-war-is-very-close.html" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-10-09",
+    promise: "Trump announces a Gaza ceasefire deal that will end the war. 'This is a great day for the world.'",
+    outcome: "The ceasefire took effect and Phase 1 hostage releases began. However, by December 2025 Phase 2 was at serious risk of collapse as Israel and Hamas disputed the terms of a permanent settlement. CNN reported Trump had suggested a deal was 'imminent' 38 separate times.",
+    resolvedDate: "2025-12",
+    status: "partial",
+    source: { label: "Al Jazeera", url: "https://www.aljazeera.com/news/2025/10/9/trump-announces-gaza-ceasefire-deal-what-we-know-and-whats-next" }
+  },
+  {
+    cat: "gaza", catLabel: "Gaza",
+    date: "2025-12",
+    promise: "Trump pushes for a second-phase Gaza deal that will bring a 'conclusive and permanent' end to the war.",
+    outcome: "Phase 2 negotiations stalled. The ceasefire was under serious strain by year-end, with both sides accusing each other of violations. No permanent settlement was reached.",
+    resolvedDate: null,
+    status: "ongoing",
+    source: { label: "CNN", url: "https://www.cnn.com/2025/12/12/middleeast/trump-gaza-ceasefire-second-phase-intl" }
+  },
+
+  // ══ IRAN ══════════════════════════════════════════════════════════════════
+  {
+    cat: "iran", catLabel: "Iran",
+    date: "2025-06",
+    promise: "After US airstrikes on Iranian nuclear facilities, Trump said Iran is 'ready to deal' and a diplomatic agreement will follow quickly.",
+    outcome: "No comprehensive nuclear deal was reached in 2025. Iran continued enrichment activities at undamaged sites. Tensions escalated through the second half of 2025.",
+    resolvedDate: "2025-12",
+    status: "failed",
+    source: { label: "Wikipedia", url: "https://en.wikipedia.org/wiki/2025_United_States_strikes_on_Iranian_nuclear_sites" }
+  },
+  {
+    cat: "iran", catLabel: "Iran",
+    date: "2026-02-28",
+    promise: "Trump orders Operation Epic Fury — airstrikes on Iran. The conflict will be 'short and decisive.' Iran will be forced to the table.",
+    outcome: "The war lasted 40 days. A ceasefire took effect April 8, 2026. However, Trump's stated goal of permanently eliminating Iran's nuclear program was not achieved, according to analysts.",
+    resolvedDate: "2026-04-08",
+    status: "partial",
+    source: { label: "Britannica", url: "https://www.britannica.com/event/2026-Iran-war" }
+  },
+  {
+    cat: "iran", catLabel: "Iran",
+    date: "2026-04-08",
+    promise: "Ceasefire with Iran announced. Trump calls it a 'total victory' that has ended Iran's nuclear threat.",
+    outcome: "The ceasefire paused active combat. But the nuclear deal's terms were disputed — analysts noted the agreement did not meet Trump's own stated war goals of permanently preventing Iran from obtaining a nuclear weapon.",
+    resolvedDate: "2026-04-08",
+    status: "partial",
+    source: { label: "AOL News", url: "https://www.aol.com/articles/trump-said-iran-war-timeline-230135540.html" }
+  },
+  {
+    cat: "iran", catLabel: "Iran",
+    date: "2026-05",
+    promise: "Trump says an Iran deal is only 'days away.' A comprehensive nuclear agreement is imminent.",
+    outcome: "No deal was reached within days. Trump requested changes to the draft agreement his own envoys had negotiated. On June 9–10, 2026, new US strikes were launched against Iran.",
+    resolvedDate: "2026-06-09",
+    status: "failed",
+    source: { label: "CNBC", url: "https://www.cnbc.com/2026/06/09/trump-iran-war-deal-days.html" }
+  },
+  {
+    cat: "iran", catLabel: "Iran",
+    date: "2026-06-09",
+    promise: "Despite fresh US airstrikes on Iran, Trump again says a deal is 'days away' and peace is 'very close.'",
+    outcome: "Ongoing. Active military operations and negotiations are both underway simultaneously as of mid-June 2026.",
+    resolvedDate: null,
+    status: "ongoing",
+    source: { label: "CNN", url: "https://www.cnn.com/2026/06/09/world/live-news/iran-war-trump-israel" }
+  }
+];
+
+// ─── Trump state ────────────────────────────────────────────────────────────
+let trumpCat    = "all";
+let trumpStatus = "all";
+
+function renderTrumpStats() {
+  const c = { failed:0, delayed:0, partial:0, delivered:0, ongoing:0 };
+  TRUMP_ENTRIES.forEach(e => c[e.status]++);
+  document.getElementById("trump-total-count").textContent = TRUMP_ENTRIES.length;
+  document.getElementById("trump-stats-bar").innerHTML = `
+    <div class="stat total">
+      <span class="stat-number">${TRUMP_ENTRIES.length}</span>
+      <span class="stat-label">Total</span>
+    </div>
+    <div class="stat failed">
+      <span class="stat-number">${c.failed}</span>
+      <span class="stat-label">Failed</span>
+    </div>
+    <div class="stat delayed">
+      <span class="stat-number">${c.delayed}</span>
+      <span class="stat-label">Delayed</span>
+    </div>
+    <div class="stat partial">
+      <span class="stat-number">${c.partial}</span>
+      <span class="stat-label">Partial</span>
+    </div>
+    <div class="stat delivered">
+      <span class="stat-number">${c.delivered}</span>
+      <span class="stat-label">Delivered</span>
+    </div>
+    <div class="stat ongoing">
+      <span class="stat-number">${c.ongoing}</span>
+      <span class="stat-label">Ongoing</span>
+    </div>`;
+}
+
+function renderTrumpTimeline() {
+  const filtered = TRUMP_ENTRIES.filter(e =>
+    (trumpCat    === "all" || e.cat    === trumpCat) &&
+    (trumpStatus === "all" || e.status === trumpStatus)
+  );
+
+  const countEl   = document.getElementById("trump-result-count");
+  const container = document.getElementById("trump-timeline-items");
+  const noResults = document.getElementById("trump-no-results");
+
+  if (filtered.length === 0) {
+    container.innerHTML = "";
+    noResults.style.display = "block";
+    countEl.textContent = "";
+    return;
+  }
+  noResults.style.display = "none";
+  countEl.textContent = `Showing ${filtered.length} of ${TRUMP_ENTRIES.length} entries`;
+
+  const byYear = {};
+  filtered.forEach(e => {
+    const y = e.date.split("-")[0];
+    (byYear[y] = byYear[y] || []).push(e);
+  });
+
+  let html = "";
+  Object.keys(byYear).sort().forEach(year => {
+    const items = byYear[year];
+    html += `
+      <div class="year-banner">
+        <span class="year-label">${year}</span>
+        <span class="year-line"></span>
+        <span class="year-count">${items.length} entr${items.length === 1 ? "y" : "ies"}</span>
+      </div>`;
+    items.forEach((e, idx) => {
+      const isLast = idx === items.length - 1;
+      html += `
+        <div class="tl-item">
+          <div class="tl-date">${fmtDate(e.date)}</div>
+          <div class="tl-connector">
+            <div class="line-top"></div>
+            <div class="tl-dot ${e.status}"></div>
+            ${isLast ? "" : '<div class="line-bottom"></div>'}
+          </div>
+          <div class="tl-card">
+            <div class="card-meta">
+              <span class="badge cat-${e.cat}">${escHtml(e.catLabel)}</span>
+              <span class="badge status-${e.status}">${STATUS_LABELS[e.status]}</span>
+            </div>
+            <div class="card-promise">${escHtml(e.promise)}</div>
+            <div class="card-outcome">${escHtml(e.outcome)}</div>
+            <div class="card-footer">
+              <span class="card-resolved">${e.resolvedDate ? "Resolved: " + fmtDate(e.resolvedDate) : ""}</span>
+              <a class="card-source" href="${e.source.url}" target="_blank" rel="noopener noreferrer">
+                ${escHtml(e.source.label)} ${ARROW_SVG}
+              </a>
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+// ─── Trump filter interactions ──────────────────────────────────────────────
+document.querySelectorAll("[data-tcat]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    trumpCat = btn.dataset.tcat;
+    document.querySelectorAll("[data-tcat]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderTrumpTimeline();
+    window.scrollTo({ top: document.querySelector("#page-trump .timeline-wrap").offsetTop - 120, behavior: "smooth" });
+  });
+});
+
+document.querySelectorAll("[data-tstatus]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    trumpStatus = btn.dataset.tstatus;
+    document.querySelectorAll("[data-tstatus]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderTrumpTimeline();
+    window.scrollTo({ top: document.querySelector("#page-trump .timeline-wrap").offsetTop - 120, behavior: "smooth" });
+  });
+});
+
+// ─── Tab switching ──────────────────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.page;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("page-" + target).classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
+// ─── Init (Trump) ───────────────────────────────────────────────────────────
+renderTrumpStats();
+renderTrumpTimeline();
 </script>
 </body>
 </html>
